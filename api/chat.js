@@ -13,47 +13,55 @@ const AI_BOTS = {
 };
 
 async function fetchAIResponse(message, bot_id, identity) {
-  const form = new FormData();
-  form.append("_wpnonce", "7dcd9d3816");
-  form.append("post_id", "261");
-  form.append("url", "https://chatgptfree.ai/chat");
-  form.append("action", "wpaicg_chat_shortcode_message");
-  form.append("message", message);
-  form.append("bot_id", bot_id);
-  form.append("chatbot_identity", identity);
-  form.append("wpaicg_chat_history", "[]");
-  form.append("wpaicg_chat_client_id", "vvHZZ88WOV");
-
-  const response = await fetch("https://chatgptfree.ai/wp-admin/admin-ajax.php", {
-    method: "POST",
-    body: form,
-    headers: {
-      ...form.getHeaders(),
-      "User-Agent": "Mozilla/5.0 (Node.js Vercel Bot)"
-    },
-  });
-
-  const rawText = await response.text();
-
-  let parsed;
   try {
-    parsed = JSON.parse(rawText);
-    // اگر double JSON ہے
-    if (parsed.data) {
-      try {
-        parsed = JSON.parse(parsed.data);
-      } catch (e) {
-        // ignore
-      }
-    }
-  } catch (err) {
-    return { success: false, msg: "Invalid response format" };
-  }
+    const form = new FormData();
+    form.append("_wpnonce", "7dcd9d3816");
+    form.append("post_id", "261");
+    form.append("url", "https://chatgptfree.ai/chat");
+    form.append("action", "wpaicg_chat_shortcode_message");
+    form.append("message", message);
+    form.append("bot_id", bot_id);
+    form.append("chatbot_identity", identity);
+    form.append("wpaicg_chat_history", "[]");
+    form.append("wpaicg_chat_client_id", "vvHZZ88WOV");
 
-  if (parsed.status === "success" && parsed.data) {
-    return { success: true, msg: parsed.data };
-  } else {
-    return { success: false, msg: parsed.msg || "No reply received" };
+    const response = await fetch("https://chatgptfree.ai/wp-admin/admin-ajax.php", {
+      method: "POST",
+      body: form,
+      headers: {
+        ...form.getHeaders(),
+        "User-Agent": "Mozilla/5.0 (Node.js Vercel Bot)"
+      },
+    });
+
+    const rawText = await response.text();
+
+    // Safe parsing, handle emojis or special chars
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+      if (parsed.data) {
+        try {
+          parsed = JSON.parse(parsed.data);
+        } catch (e) {
+          // ignore, keep original parsed
+        }
+      }
+    } catch (err) {
+      return { success: false, msg: rawText || "Invalid response format" };
+    }
+
+    // response ہمیشہ return ہو، emojis safe
+    if (parsed.status === "success" && parsed.data) {
+      return { success: true, msg: parsed.data };
+    } else if (parsed.msg) {
+      return { success: false, msg: parsed.msg };
+    } else {
+      return { success: false, msg: rawText };
+    }
+
+  } catch (err) {
+    return { success: false, msg: err.message };
   }
 }
 
