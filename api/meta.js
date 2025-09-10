@@ -11,8 +11,8 @@ module.exports = async (req, res) => {
     form.append("url", "https://chatgptfree.ai/chat");
     form.append("action", "wpaicg_chat_shortcode_message");
     form.append("message", message);
-    form.append("bot_id", "4007");
-    form.append("chatbot_identity", "custom_bot_4007");
+    form.append("bot_id", "10445");
+    form.append("chatbot_identity", "custom_bot_10445");
     form.append("wpaicg_chat_history", "[]");
     form.append("wpaicg_chat_client_id", "vvHZZ88WOV");
 
