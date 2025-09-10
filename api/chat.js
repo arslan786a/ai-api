@@ -1,42 +1,36 @@
-// api/chat.js
-const fetch = require("node-fetch"); // CommonJS import
+const fetch = require("node-fetch");
+const FormData = require("form-data");
 
 module.exports = async (req, res) => {
   try {
-    const { message = "hi" } = req.query;
+    // query param سے message لینا
+    const message = req.query.message || "hello";
 
-    const url = "https://chatgptfree.ai/wp-admin/admin-ajax.php";
+    // form-data build کرنا
+    const form = new FormData();
+    form.append("_wpnonce", "7dcd9d3816");
+    form.append("post_id", "261");
+    form.append("url", "https://chatgptfree.ai/chat");
+    form.append("action", "wpaicg_chat_shortcode_message");
+    form.append("message", message);
+    form.append("bot_id", "10420");
+    form.append("chatbot_identity", "custom_bot_10420");
+    form.append("wpaicg_chat_history", "[]");
+    form.append("wpaicg_chat_client_id", "vvHZZ88WOV");
 
-    // Cookie اور User-Agent اپنے browser سے DevTools → Network → admin-ajax.php سے copy کرو
-    const headers = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-      "Cookie": "cf_clearance=abcd1234efgh5678; wordpress_logged_in=xyz123...",
-    };
-
-    const params = new URLSearchParams();
-    params.append("_wpnonce", "7dcd9d3816");
-    params.append("post_id", "261");
-    params.append("url", "https://chatgptfree.ai/chat");
-    params.append("action", "wpaicg_chat_shortcode_message");
-    params.append("message", message);
-    params.append("bot_id", "10420");
-    params.append("chatbot_identity", "custom_bot_10420");
-    params.append("wpaicg_chat_history", "[]");
-    params.append("wpaicg_chat_client_id", "vvHZZ88WOV");
-
-    const response = await fetch(url, {
+    // request بھیجنا
+    const response = await fetch("https://chatgptfree.ai/wp-admin/admin-ajax.php", {
       method: "POST",
-      headers,
-      body: params,
+      body: form,
+      headers: {
+        ...form.getHeaders(),
+        "User-Agent": "Mozilla/5.0 (Node.js Vercel Bot)", // spoof کرنا ضروری ہے
+      },
     });
 
-    const data = await response.text(); // اصل response
-    res.setHeader("Content-Type", "application/json");
-    res.status(200).send(data);
+    const data = await response.text(); // کچھ جگہ json نہیں بلکہ text آتا ہے
+    res.status(200).json({ success: true, data });
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
