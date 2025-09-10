@@ -25,30 +25,41 @@ async function fetchAIReply(aiName, message) {
   form.append("wpaicg_chat_client_id", "vvHZZ88WOV");
 
   try {
-    const response = await fetch("https://chatgptfree.ai/wp-admin/admin-ajax.php", {
-      method: "POST",
-      body: form,
-      headers: {
-        ...form.getHeaders(),
-        "User-Agent": "Mozilla/5.0 (Node.js Vercel Bot)",
-      },
-    });
+    const response = await fetch(
+      "https://chatgptfree.ai/wp-admin/admin-ajax.php",
+      {
+        method: "POST",
+        body: form,
+        headers: {
+          ...form.getHeaders(),
+          "User-Agent": "Mozilla/5.0 (Node.js Vercel Bot)",
+        },
+      }
+    );
 
     const rawText = await response.text();
+
     let parsed;
     try {
       parsed = JSON.parse(rawText);
-      if (typeof parsed.data === "string") {
-        parsed = JSON.parse(parsed.data);
-      }
     } catch {
-      return { success: false, msg: "Invalid response format" };
+      return { success: false, msg: "Invalid top-level response" };
     }
 
-    if (parsed.status === "success" && parsed.data) {
-      return { success: true, msg: parsed.data };
+    // Some responses wrap data in a string → parse again
+    let dataObj;
+    try {
+      dataObj = typeof parsed.data === "string" ? JSON.parse(parsed.data) : parsed.data;
+    } catch {
+      return { success: false, msg: "Invalid nested response format" };
+    }
+
+    if (dataObj && dataObj.data) {
+      return { success: true, msg: dataObj.data };
+    } else if (dataObj && dataObj.msg) {
+      return { success: false, msg: dataObj.msg };
     } else {
-      return { success: false, msg: parsed.msg || "No reply received" };
+      return { success: false, msg: "No reply received" };
     }
   } catch (err) {
     return { success: false, msg: err.message };
@@ -69,8 +80,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ai: aiQuery, ...reply });
     } else {
       // No AI selected → fetch all
-      const promises = Object.keys(BOT_MAP).map(aiName =>
-        fetchAIReply(aiName, message).then(reply => ({ ai: aiName, ...reply }))
+      const promises = Object.keys(BOT_MAP).map((aiName) =>
+        fetchAIReply(aiName, message).then((reply) => ({ ai: aiName, ...reply }))
       );
       const results = await Promise.all(promises);
       return res.status(200).json({ success: true, results });
